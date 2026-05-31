@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика ароматов</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
+
+        header {
+            background: #1d1d1f;
+            color: white;
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 22px; font-weight: 600; }
+        .update-time { font-size: 13px; color: #999; }
+
+        .cards {
+            display: flex;
+            gap: 20px;
+            padding: 30px 40px 0;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px 30px;
+            flex: 1;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .card .value { font-size: 36px; font-weight: 700; color: #1d1d1f; }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px 40px;
+        }
+        .chart-box {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .chart-box h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #1d1d1f; }
+
+        .full-width { grid-column: 1 / -1; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #f5f5f7;
+            color: #888;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        td { padding: 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .score-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e8e8e8;
+            flex: 1;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #6e8efb, #a777e3);
+        }
+
+        .money-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .money-item {
+            flex: 1;
+            background: #f5f5f7;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .money-item .name { font-size: 14px; color: #555; margin-bottom: 8px; }
+        .money-item .count { font-size: 28px; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Аналитика ароматов</h1>
+    <span class="update-time" id="updateTime">Загрузка...</span>
+</header>
+
+<div class="cards">
+    <div class="card">
+        <div class="label">Пользователей</div>
+        <div class="value" id="totalUsers">—</div>
+    </div>
+    <div class="card">
+        <div class="label">Всего оценок</div>
+        <div class="value" id="totalResponses">—</div>
+    </div>
+    <div class="card">
+        <div class="label">Лучший аромат</div>
+        <div class="value" id="bestAroma" style="font-size: 18px; padding-top: 8px;">—</div>
+    </div>
+</div>
+
+<div class="charts">
+
+    <div class="chart-box">
+        <h2>Средняя оценка «Понравился»</h2>
+        <canvas id="likeChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+        <h2>Средняя оценка «Яркость»</h2>
+        <canvas id="brightChart"></canvas>
+    </div>
+
+    <div class="chart-box full-width">
+        <h2>Таблица по ароматам</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Аромат</th>
+                    <th>Оценок</th>
+                    <th>Понравился</th>
+                    <th>Яркость</th>
+                    <th>Популярные комнаты</th>
+                </tr>
+            </thead>
+            <tbody id="aromaTable"></tbody>
+        </table>
+    </div>
+
+    <div class="chart-box">
+        <h2>Запах денег — выбор варианта</h2>
+        <div class="money-stats" id="moneyStats">
+            <div class="money-item">
+                <div class="name">Нет данных</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let likeChart, brightChart;
+
+function createChart(id, labels, data, color) {
+    const ctx = document.getElementById(id).getContext('2d');
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: color,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 10, grid: { color: '#f0f0f0' } },
+                x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+function shortName(name) {
+    const map = {
+        "Красное вино": "Красн. вино",
+        "Мамины объятия": "Мамины обн.",
+        "Земля": "Земля",
+        "Запах денег": "Зап. денег",
+        "Яблочный апероль": "Яблоч. апер.",
+        "Груша в бренди": "Груша",
+        "Бурбон со сливками": "Бурбон",
+        "Кашемир и мускус": "Кашемир",
+        "Плитка шоколада": "Шоколад",
+        "Конопляное масло": "Конопл. масло",
+        "Патрики": "Патрики",
+        "Холодил. в цветоч.": "Холодил."
+    };
+    return map[name] || name;
+}
+
+async function loadData() {
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+
+    document.getElementById('totalUsers').textContent = data.total_users;
+    document.getElementById('totalResponses').textContent = data.total_responses;
+
+    if (data.aroma_stats.length > 0) {
+        document.getElementById('bestAroma').textContent = data.aroma_stats[0].aroma;
+    }
+
+    const labels = data.aroma_stats.map(a => shortName(a.aroma));
+    const likes = data.aroma_stats.map(a => a.avg_like || 0);
+    const brights = data.aroma_stats.map(a => a.avg_bright || 0);
+
+    if (likeChart) likeChart.destroy();
+    if (brightChart) brightChart.destroy();
+
+    likeChart = createChart('likeChart', labels, likes, 'rgba(110, 142, 251, 0.8)');
+    brightChart = createChart('brightChart', labels, brights, 'rgba(167, 119, 227, 0.8)');
+
+    // Таблица
+    const tbody = document.getElementById('aromaTable');
+    tbody.innerHTML = '';
+    data.aroma_stats.forEach(a => {
+        const rooms = data.rooms[a.aroma] || [];
+        const roomText = rooms.map(r => r.room).join(', ') || '—';
+        tbody.innerHTML += `
+            <tr>
+                <td>${a.aroma}</td>
+                <td>${a.total}</td>
+                <td>
+                    <div class="score-bar">
+                        <span>${a.avg_like || '—'}</span>
+                        <div class="bar"><div class="bar-fill" style="width:${(a.avg_like||0)*10}%"></div></div>
+                    </div>
+                </td>
+                <td>
+                    <div class="score-bar">
+                        <span>${a.avg_bright || '—'}</span>
+                        <div class="bar"><div class="bar-fill" style="width:${(a.avg_bright||0)*10}%"></div></div>
+                    </div>
+                </td>
+                <td>${roomText}</td>
+            </tr>`;
+    });
+
+    // Запах денег
+    const moneyDiv = document.getElementById('moneyStats');
+    if (data.money_stats.length > 0) {
+        moneyDiv.innerHTML = data.money_stats.map(m => `
+            <div class="money-item">
+                <div class="name">${m.variant}</div>
+                <div class="count">${m.count}</div>
+            </div>`).join('');
+    }
+
+    document.getElementById('updateTime').textContent =
+        'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+
+</body>
+</html>
