@@ -142,6 +142,35 @@
         }
         .card-value.text { font-size: 20px; padding-top: 6px; }
 
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 4px;
+            width: fit-content;
+        }
+        .tab {
+            padding: 9px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+        }
+        .tab.active {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         /* Grid */
         .grid {
             display: grid;
@@ -257,6 +286,12 @@
         </div>
     </header>
 
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('analytics', this)">Аналитика</button>
+        <button class="tab" onclick="switchTab('responses', this)">Все ответы</button>
+    </div>
+
+    <div id="tab-analytics" class="tab-content active">
     <div class="cards">
         <div class="card">
             <div class="card-label">Пользователей</div>
@@ -298,9 +333,59 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <div id="tab-responses" class="tab-content">
+        <div class="box">
+            <div class="box-title"><span style="background:linear-gradient(135deg,var(--accent3),var(--green))"></span>Все ответы</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата и время</th>
+                        <th>Имя</th>
+                        <th>Username</th>
+                        <th>Аромат</th>
+                        <th>Вопрос 1</th>
+                        <th>Вопрос 2</th>
+                        <th>Комната</th>
+                        <th>Вариант</th>
+                    </tr>
+                </thead>
+                <tbody id="responsesTable"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+
+async function loadResponses() {
+    const res = await fetch('/api/responses');
+    const rows = await res.json();
+    const tbody = document.getElementById('responsesTable');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+        const dt = r.created_at ? r.created_at.replace('T', ' ').slice(0, 16) : '—';
+        tbody.innerHTML += `
+        <tr>
+            <td style="color:var(--muted);font-size:13px;white-space:nowrap">${dt}</td>
+            <td style="font-weight:500">${r.first_name || '—'}</td>
+            <td style="color:var(--muted)">${r.username ? '@' + r.username : '—'}</td>
+            <td>${r.aroma}</td>
+            <td>${r.like_score ?? '—'}</td>
+            <td>${r.bright_score ?? '—'}</td>
+            <td style="color:var(--muted);font-size:13px">${r.room || '—'}</td>
+            <td style="color:var(--muted);font-size:13px">${r.variant || '—'}</td>
+        </tr>`;
+    });
+}
+
 function shortName(name) {
     const map = {
         "Красное вино": "Красн. вино", "Мамины объятия": "Мамины обн.",
@@ -368,7 +453,8 @@ async function loadData() {
 }
 
 loadData();
-setInterval(loadData, 30000);
+loadResponses();
+setInterval(() => { loadData(); loadResponses(); }, 30000);
 </script>
 </body>
 </html>

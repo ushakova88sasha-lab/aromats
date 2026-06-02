@@ -97,6 +97,21 @@ def api_stats():
     return jsonify(get_stats())
 
 
+@app.route("/api/responses")
+def api_responses():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, created_at, first_name, username, aroma,
+               like_score, bright_score, room, variant
+        FROM responses
+        ORDER BY created_at DESC
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+
 if __name__ == "__main__":
     port = int(os.getenv("DASHBOARD_PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

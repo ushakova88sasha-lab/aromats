@@ -124,6 +124,7 @@ async def money_variant_selected(callback: CallbackQuery, state: FSMContext):
     await db.save_response(
         user_id=callback.from_user.id,
         username=callback.from_user.username or "",
+        first_name=callback.from_user.first_name or "",
         aroma="Запах денег",
         variant=variant
     )
@@ -205,6 +206,7 @@ async def room_answer(message: Message, state: FSMContext):
     await db.save_response(
         user_id=message.from_user.id,
         username=message.from_user.username or "",
+        first_name=message.from_user.first_name or "",
         aroma=aroma,
         like=like,
         bright=bright,

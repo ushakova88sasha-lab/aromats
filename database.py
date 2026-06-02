@@ -19,18 +19,19 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            try:
-                await db.execute("ALTER TABLE responses ADD COLUMN variant TEXT")
-            except Exception:
-                pass
+            for col in ["variant TEXT", "first_name TEXT"]:
+                try:
+                    await db.execute(f"ALTER TABLE responses ADD COLUMN {col}")
+                except Exception:
+                    pass
             await db.commit()
 
-    async def save_response(self, user_id, username, aroma, like=None, bright=None, room=None, variant=None):
+    async def save_response(self, user_id, username, first_name, aroma, like=None, bright=None, room=None, variant=None):
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 """INSERT INTO responses
-                   (user_id, username, aroma, like_score, bright_score, room, variant)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (user_id, username, aroma, like, bright, room, variant)
+                   (user_id, username, first_name, aroma, like_score, bright_score, room, variant)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, username, first_name, aroma, like, bright, room, variant)
             )
             await db.commit()
