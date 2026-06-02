@@ -91,7 +91,7 @@ async def aroma_selected(callback: CallbackQuery, state: FSMContext):
     index = int(callback.data.split(":")[1])
     aroma = AROMAS[index]
     await state.update_data(aroma=aroma, aroma_index=index)
-    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.delete()
 
     if index == MONEY_AROMA_INDEX:
         await callback.message.answer_photo(
@@ -103,11 +103,12 @@ async def aroma_selected(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
-    await callback.message.answer_photo(
+    photo_msg = await callback.message.answer_photo(
         photo=get_photo(aroma),
         caption=f"На сколько тебе понравился аромат «{aroma}» 👇✍️",
         reply_markup=rating_keyboard("like")
     )
+    await state.update_data(photo_msg_id=photo_msg.message_id)
     await state.set_state(Survey.rate_like)
     await callback.answer()
 
@@ -188,6 +189,7 @@ async def room_answer(message: Message, state: FSMContext):
     like = data["like"]
     bright = data["bright"]
     room = message.text
+    photo_msg_id = data.get("photo_msg_id")
 
     await db.save_response(
         user_id=message.from_user.id,
@@ -204,7 +206,17 @@ async def room_answer(message: Message, state: FSMContext):
         f"✨ Яркость: {bright}/10\n"
         f"🏠 Комната: {room}"
     )
-    await message.answer(summary)
+    if photo_msg_id:
+        try:
+            await bot.edit_message_caption(
+                chat_id=message.chat.id,
+                message_id=photo_msg_id,
+                caption=summary
+            )
+        except Exception:
+            await message.answer(summary)
+    else:
+        await message.answer(summary)
 
     if len(rated) == len(AROMAS):
         await state.clear()
