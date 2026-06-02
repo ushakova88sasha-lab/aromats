@@ -4,209 +4,366 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Аналитика ароматов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
+        :root {
+            --bg: #0d0d14;
+            --surface: rgba(255,255,255,0.04);
+            --surface-hover: rgba(255,255,255,0.07);
+            --border: rgba(255,255,255,0.08);
+            --text: #f0f0f5;
+            --muted: #6b6b80;
+            --accent1: #7c6aff;
+            --accent2: #c46aff;
+            --accent3: #6abaff;
+            --green: #4ecca3;
+        }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Фоновый градиент */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: -10%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(ellipse, rgba(124,106,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -20%;
+            right: -10%;
+            width: 50%;
+            height: 50%;
+            background: radial-gradient(ellipse, rgba(196,106,255,0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 32px 48px; }
+
+        /* Header */
         header {
-            background: #1d1d1f;
-            color: white;
-            padding: 24px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 32px 0 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
         }
-        header h1 { font-size: 22px; font-weight: 600; }
-        .update-time { font-size: 13px; color: #999; }
-
-        .cards {
+        .logo {
             display: flex;
-            gap: 20px;
-            padding: 30px 40px 0;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        header h1 { font-size: 20px; font-weight: 600; }
+        .update-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .update-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* Stat cards */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
         }
         .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px 30px;
-            flex: 1;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            backdrop-filter: blur(20px);
+            transition: background 0.2s, transform 0.2s;
+            position: relative;
+            overflow: hidden;
         }
-        .card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
-        .card .value { font-size: 36px; font-weight: 700; color: #1d1d1f; }
+        .card:hover { background: var(--surface-hover); transform: translateY(-2px); }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent1), var(--accent2));
+            border-radius: 2px 2px 0 0;
+        }
+        .card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent2), var(--accent3)); }
+        .card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent3), var(--green)); }
+        .card-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+        }
+        .card-value {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card-value.text { font-size: 20px; padding-top: 6px; }
 
-        .charts {
+        /* Grid */
+        .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px 40px;
+            gap: 16px;
         }
-        .chart-box {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        .full { grid-column: 1 / -1; }
+
+        /* Chart box */
+        .box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            backdrop-filter: blur(20px);
         }
-        .chart-box h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #1d1d1f; }
-
-        .full-width { grid-column: 1 / -1; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .box-title {
             font-size: 14px;
-        }
-        th {
-            text-align: left;
-            padding: 10px 12px;
-            background: #f5f5f7;
-            color: #888;
-            font-weight: 500;
-            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
             text-transform: uppercase;
-        }
-        td { padding: 12px; border-bottom: 1px solid #f0f0f0; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafafa; }
-
-        .score-bar {
+            letter-spacing: 0.6px;
+            margin-bottom: 24px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .bar {
-            height: 8px;
-            border-radius: 4px;
-            background: #e8e8e8;
+        .box-title span {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+        }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            border-bottom: 1px solid var(--border);
+        }
+        tbody td {
+            padding: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.85);
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+        .bar-wrap { display: flex; align-items: center; gap: 10px; }
+        .bar-track {
             flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.07);
             overflow: hidden;
         }
         .bar-fill {
             height: 100%;
-            border-radius: 4px;
-            background: linear-gradient(90deg, #6e8efb, #a777e3);
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent1), var(--accent2));
         }
+        .bar-fill.bright { background: linear-gradient(90deg, var(--accent3), var(--green)); }
+        .score-num { font-size: 13px; font-weight: 600; min-width: 28px; }
 
-        .money-stats {
-            display: flex;
-            gap: 16px;
-            margin-top: 8px;
+        .rank {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px; height: 24px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-right: 4px;
         }
-        .money-item {
-            flex: 1;
-            background: #f5f5f7;
-            border-radius: 12px;
-            padding: 16px;
+        .rank-1 { background: linear-gradient(135deg,#ffd700,#ffa500); color: #000; }
+        .rank-2 { background: rgba(255,255,255,0.15); color: #fff; }
+        .rank-3 { background: rgba(196,106,255,0.3); color: var(--accent2); }
+
+        /* Money variants */
+        .money-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+        .money-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
             text-align: center;
         }
-        .money-item .name { font-size: 14px; color: #555; margin-bottom: 8px; }
-        .money-item .count { font-size: 28px; font-weight: 700; }
+        .money-card-name { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+        .money-card-num {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body>
+<div class="wrap">
+    <header>
+        <div class="logo">
+            <div class="logo-icon">🌸</div>
+            <h1>Аналитика ароматов</h1>
+        </div>
+        <div class="update-pill">
+            <div class="update-dot"></div>
+            <span id="updateTime">Загрузка...</span>
+        </div>
+    </header>
 
-<header>
-    <h1>Аналитика ароматов</h1>
-    <span class="update-time" id="updateTime">Загрузка...</span>
-</header>
-
-<div class="cards">
-    <div class="card">
-        <div class="label">Пользователей</div>
-        <div class="value" id="totalUsers">—</div>
-    </div>
-    <div class="card">
-        <div class="label">Всего оценок</div>
-        <div class="value" id="totalResponses">—</div>
-    </div>
-    <div class="card">
-        <div class="label">Лучший аромат</div>
-        <div class="value" id="bestAroma" style="font-size: 18px; padding-top: 8px;">—</div>
-    </div>
-</div>
-
-<div class="charts">
-
-    <div class="chart-box">
-        <h2>Средняя оценка «Понравился»</h2>
-        <canvas id="likeChart"></canvas>
-    </div>
-
-    <div class="chart-box">
-        <h2>Средняя оценка «Яркость»</h2>
-        <canvas id="brightChart"></canvas>
-    </div>
-
-    <div class="chart-box full-width">
-        <h2>Таблица по ароматам</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Аромат</th>
-                    <th>Оценок</th>
-                    <th>Понравился</th>
-                    <th>Яркость</th>
-                    <th>Популярные комнаты</th>
-                </tr>
-            </thead>
-            <tbody id="aromaTable"></tbody>
-        </table>
-    </div>
-
-    <div class="chart-box">
-        <h2>Запах денег — выбор варианта</h2>
-        <div class="money-stats" id="moneyStats">
-            <div class="money-item">
-                <div class="name">Нет данных</div>
-            </div>
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Пользователей</div>
+            <div class="card-value" id="totalUsers">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Всего оценок</div>
+            <div class="card-value" id="totalResponses">—</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Лучший аромат</div>
+            <div class="card-value text" id="bestAroma">—</div>
         </div>
     </div>
 
+    <div class="grid">
+        <div class="box">
+            <div class="box-title"><span></span>Понравился</div>
+            <canvas id="likeChart"></canvas>
+        </div>
+        <div class="box">
+            <div class="box-title"><span style="background:linear-gradient(135deg,var(--accent3),var(--green))"></span>Яркость</div>
+            <canvas id="brightChart"></canvas>
+        </div>
+
+        <div class="box full">
+            <div class="box-title"><span style="background:linear-gradient(135deg,#fff,rgba(255,255,255,0.4))"></span>Все ароматы</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Аромат</th>
+                        <th>Оценок</th>
+                        <th>Понравился</th>
+                        <th>Яркость</th>
+                        <th>Комнаты</th>
+                    </tr>
+                </thead>
+                <tbody id="aromaTable"></tbody>
+            </table>
+        </div>
+
+        <div class="box">
+            <div class="box-title"><span style="background:linear-gradient(135deg,#ffd700,#ffa500)"></span>Запах денег — выбор</div>
+            <div class="money-grid" id="moneyStats">
+                <div class="money-card"><div class="money-card-name">Нет данных</div></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 let likeChart, brightChart;
 
-function createChart(id, labels, data, color) {
-    const ctx = document.getElementById(id).getContext('2d');
-    return new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: color,
-                borderRadius: 8,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { min: 0, max: 10, grid: { color: '#f0f0f0' } },
-                x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+const CHART_OPTS = (color) => ({
+    type: 'bar',
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false }, tooltip: {
+            backgroundColor: 'rgba(13,13,20,0.9)',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            titleColor: '#fff',
+            bodyColor: 'rgba(255,255,255,0.6)',
+            padding: 10,
+        }},
+        scales: {
+            y: {
+                min: 0, max: 10,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#6b6b80', font: { size: 11 } },
+                border: { color: 'transparent' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: '#6b6b80', font: { size: 11 } },
+                border: { color: 'rgba(255,255,255,0.08)' }
             }
         }
-    });
+    }
+});
+
+function makeGradient(ctx, color1, color2) {
+    const g = ctx.createLinearGradient(0, 0, 0, 300);
+    g.addColorStop(0, color1);
+    g.addColorStop(1, color2);
+    return g;
 }
 
 function shortName(name) {
     const map = {
-        "Красное вино": "Красн. вино",
-        "Мамины объятия": "Мамины обн.",
-        "Земля": "Земля",
-        "Запах денег": "Зап. денег",
-        "Яблочный апероль": "Яблоч. апер.",
-        "Груша в бренди": "Груша",
-        "Бурбон со сливками": "Бурбон",
-        "Кашемир и мускус": "Кашемир",
-        "Плитка шоколада": "Шоколад",
-        "Конопляное масло": "Конопл. масло",
-        "Патрики": "Патрики",
-        "Холодил. в цветоч.": "Холодил."
+        "Красное вино": "Красн. вино", "Мамины объятия": "Мамины обн.",
+        "Земля": "Земля", "Запах денег": "Зап. денег",
+        "Яблочный апероль": "Яблоч. апер.", "Груша в бренди": "Груша",
+        "Бурбон со сливками": "Бурбон", "Кашемир и мускус": "Кашемир",
+        "Плитка шоколада": "Шоколад", "Конопляное масло": "Конопл.",
+        "Патрики": "Патрики", "Холодил. в цветоч.": "Холодил."
     };
     return map[name] || name;
+}
+
+function rankBadge(i) {
+    if (i === 0) return '<span class="rank rank-1">1</span>';
+    if (i === 1) return '<span class="rank rank-2">2</span>';
+    if (i === 2) return '<span class="rank rank-3">3</span>';
+    return `<span style="color:var(--muted);font-size:13px;margin-right:8px">${i+1}</span>`;
 }
 
 async function loadData() {
@@ -215,10 +372,8 @@ async function loadData() {
 
     document.getElementById('totalUsers').textContent = data.total_users;
     document.getElementById('totalResponses').textContent = data.total_responses;
-
-    if (data.aroma_stats.length > 0) {
+    if (data.aroma_stats.length > 0)
         document.getElementById('bestAroma').textContent = data.aroma_stats[0].aroma;
-    }
 
     const labels = data.aroma_stats.map(a => shortName(a.aroma));
     const likes = data.aroma_stats.map(a => a.avg_like || 0);
@@ -227,52 +382,60 @@ async function loadData() {
     if (likeChart) likeChart.destroy();
     if (brightChart) brightChart.destroy();
 
-    likeChart = createChart('likeChart', labels, likes, 'rgba(110, 142, 251, 0.8)');
-    brightChart = createChart('brightChart', labels, brights, 'rgba(167, 119, 227, 0.8)');
+    const lCtx = document.getElementById('likeChart').getContext('2d');
+    const bCtx = document.getElementById('brightChart').getContext('2d');
 
-    // Таблица
-    const tbody = document.getElementById('aromaTable');
-    tbody.innerHTML = '';
-    data.aroma_stats.forEach(a => {
-        const rooms = data.rooms[a.aroma] || [];
-        const roomText = rooms.map(r => r.room).join(', ') || '—';
-        tbody.innerHTML += `
-            <tr>
-                <td>${a.aroma}</td>
-                <td>${a.total}</td>
-                <td>
-                    <div class="score-bar">
-                        <span>${a.avg_like || '—'}</span>
-                        <div class="bar"><div class="bar-fill" style="width:${(a.avg_like||0)*10}%"></div></div>
-                    </div>
-                </td>
-                <td>
-                    <div class="score-bar">
-                        <span>${a.avg_bright || '—'}</span>
-                        <div class="bar"><div class="bar-fill" style="width:${(a.avg_bright||0)*10}%"></div></div>
-                    </div>
-                </td>
-                <td>${roomText}</td>
-            </tr>`;
+    const opts = CHART_OPTS();
+
+    likeChart = new Chart(lCtx, {
+        ...opts,
+        data: { labels, datasets: [{ data: likes, backgroundColor: makeGradient(lCtx,'rgba(124,106,255,0.85)','rgba(124,106,255,0.2)'), borderRadius: 8, borderSkipped: false }] }
+    });
+    brightChart = new Chart(bCtx, {
+        ...opts,
+        data: { labels, datasets: [{ data: brights, backgroundColor: makeGradient(bCtx,'rgba(106,186,255,0.85)','rgba(78,204,163,0.2)'), borderRadius: 8, borderSkipped: false }] }
     });
 
-    // Запах денег
+    const tbody = document.getElementById('aromaTable');
+    tbody.innerHTML = '';
+    data.aroma_stats.forEach((a, i) => {
+        const rooms = (data.rooms[a.aroma] || []).map(r => r.room).join(', ') || '—';
+        tbody.innerHTML += `
+        <tr>
+            <td>${rankBadge(i)}</td>
+            <td style="font-weight:500">${a.aroma}</td>
+            <td style="color:var(--muted)">${a.total}</td>
+            <td>
+                <div class="bar-wrap">
+                    <span class="score-num">${a.avg_like || '—'}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:${(a.avg_like||0)*10}%"></div></div>
+                </div>
+            </td>
+            <td>
+                <div class="bar-wrap">
+                    <span class="score-num">${a.avg_bright || '—'}</span>
+                    <div class="bar-track"><div class="bar-fill bright" style="width:${(a.avg_bright||0)*10}%"></div></div>
+                </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px">${rooms}</td>
+        </tr>`;
+    });
+
     const moneyDiv = document.getElementById('moneyStats');
     if (data.money_stats.length > 0) {
         moneyDiv.innerHTML = data.money_stats.map(m => `
-            <div class="money-item">
-                <div class="name">${m.variant}</div>
-                <div class="count">${m.count}</div>
+            <div class="money-card">
+                <div class="money-card-name">${m.variant}</div>
+                <div class="money-card-num">${m.count}</div>
             </div>`).join('');
     }
 
     document.getElementById('updateTime').textContent =
-        'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+        'Обновлено в ' + new Date().toLocaleTimeString('ru-RU');
 }
 
 loadData();
 setInterval(loadData, 30000);
 </script>
-
 </body>
 </html>
