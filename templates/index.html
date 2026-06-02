@@ -288,10 +288,12 @@
             .tabs { width: 100%; }
             .tab { flex: 1; text-align: center; padding: 9px 12px; font-size: 13px; }
 
-            .cards { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
-            .card { padding: 18px 20px; border-radius: 16px; }
-            .card-value { font-size: 32px; }
-            .card-value.text { font-size: 17px; }
+            .cards { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+            .card { padding: 14px 12px; border-radius: 14px; }
+            .card-label { font-size: 10px; margin-bottom: 8px; }
+            .card-value { font-size: 26px; }
+            .card-value.text { font-size: 13px; padding-top: 4px; }
+            .card div[style] { font-size: 10px !important; margin-top: 6px !important; }
 
             .grid { grid-template-columns: 1fr; gap: 12px; }
             .full { grid-column: 1; }
