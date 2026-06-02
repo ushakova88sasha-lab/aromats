@@ -91,7 +91,7 @@ async def aroma_selected(callback: CallbackQuery, state: FSMContext):
     index = int(callback.data.split(":")[1])
     aroma = AROMAS[index]
     await state.update_data(aroma=aroma, aroma_index=index)
-    await callback.message.edit_text(f"Вы выбрали: {aroma}")
+    await callback.message.edit_reply_markup(reply_markup=None)
 
     if index == MONEY_AROMA_INDEX:
         await callback.message.answer_photo(
@@ -126,7 +126,7 @@ async def money_variant_selected(callback: CallbackQuery, state: FSMContext):
         aroma="Запах денег",
         variant=variant
     )
-    await callback.message.edit_caption(caption=f"Ваш выбор: {variant}")
+    await callback.message.edit_caption(caption=f"Запах денег — ваш выбор: {variant}")
 
     if len(rated) == len(AROMAS):
         await state.clear()
@@ -152,10 +152,12 @@ async def rate_bright_wrong(message: Message, state: FSMContext):
 @dp.callback_query(Survey.rate_like, F.data.startswith("like:"))
 async def rate_like(callback: CallbackQuery, state: FSMContext):
     score = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    aroma = data["aroma"]
     await state.update_data(like=score)
-    await callback.message.edit_caption(caption=f"Понравился: {score}/10")
+    await callback.message.edit_caption(caption=f"Аромат «{aroma}» понравился {score}/10")
     await callback.message.answer(
-        "На сколько для тебя яркий аромат? 🫦👇",
+        f"На сколько для тебя яркий аромат «{aroma}»? 🫦👇",
         reply_markup=rating_keyboard("bright")
     )
     await state.set_state(Survey.rate_bright)
@@ -168,7 +170,7 @@ async def rate_bright(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     aroma = data["aroma"]
     await state.update_data(bright=score)
-    await callback.message.edit_text(f"Яркость: {score}/10")
+    await callback.message.edit_text(f"Яркость «{aroma}»: {score}/10")
     await callback.message.answer(
         f"В какую комнату вы бы поставили аромат «{aroma}»?\nНапишите словами ниже 👇"
     )
@@ -182,22 +184,35 @@ async def room_answer(message: Message, state: FSMContext):
     rated = data.get("rated", [])
     rated.append(data["aroma_index"])
 
+    aroma = data["aroma"]
+    like = data["like"]
+    bright = data["bright"]
+    room = message.text
+
     await db.save_response(
         user_id=message.from_user.id,
         username=message.from_user.username or "",
-        aroma=data["aroma"],
-        like=data["like"],
-        bright=data["bright"],
-        room=message.text
+        aroma=aroma,
+        like=like,
+        bright=bright,
+        room=room
     )
+
+    summary = (
+        f"Аромат — «{aroma}»:\n"
+        f"👍 Понравился: {like}/10\n"
+        f"✨ Яркость: {bright}/10\n"
+        f"🏠 Комната: {room}"
+    )
+    await message.answer(summary)
 
     if len(rated) == len(AROMAS):
         await state.clear()
-        await message.answer("Вы оценили все ароматы! Спасибо 🙏")
+        await message.answer("Вы оценили все ароматы, спасибо за участие! 🙏")
     else:
         await state.update_data(rated=rated)
         await state.set_state(Survey.select_aroma)
-        await message.answer("Спасибо! Выберите следующий аромат 👇", reply_markup=aroma_keyboard(rated))
+        await message.answer("Выберите следующий аромат 👇", reply_markup=aroma_keyboard(rated))
 
 
 async def main():
