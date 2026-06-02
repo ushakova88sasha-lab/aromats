@@ -270,16 +270,17 @@
         <div class="card">
             <div class="card-label">Лучший аромат</div>
             <div class="card-value text" id="bestAroma">—</div>
+            <div style="margin-top:10px;font-size:12px;color:var(--muted)">По среднему значению вопроса 1</div>
         </div>
     </div>
 
     <div class="grid">
         <div class="box">
-            <div class="box-title"><span></span>Понравился</div>
+            <div class="box-title"><span></span>Ср. значение вопрос 1</div>
             <canvas id="likeChart"></canvas>
         </div>
         <div class="box">
-            <div class="box-title"><span style="background:linear-gradient(135deg,var(--accent3),var(--green))"></span>Яркость</div>
+            <div class="box-title"><span style="background:linear-gradient(135deg,var(--accent3),var(--green))"></span>Ср. значение вопрос 2</div>
             <canvas id="brightChart"></canvas>
         </div>
 
@@ -290,10 +291,10 @@
                     <tr>
                         <th>#</th>
                         <th>Аромат</th>
-                        <th>Оценок</th>
-                        <th>Понравился</th>
-                        <th>Яркость</th>
-                        <th>Комнаты</th>
+                        <th>Количество оценок</th>
+                        <th>Ср. значение вопрос 1</th>
+                        <th>Ср. значение вопрос 2</th>
+                        <th>Топ 3 слова</th>
                     </tr>
                 </thead>
                 <tbody id="aromaTable"></tbody>
@@ -399,7 +400,7 @@ async function loadData() {
     const tbody = document.getElementById('aromaTable');
     tbody.innerHTML = '';
     data.aroma_stats.forEach((a, i) => {
-        const rooms = (data.rooms[a.aroma] || []).map(r => r.room).join(', ') || '—';
+        const rooms = (data.rooms[a.aroma] || []).join(', ') || '—';
         tbody.innerHTML += `
         <tr>
             <td>${rankBadge(i)}</td>

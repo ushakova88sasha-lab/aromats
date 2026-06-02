@@ -1,5 +1,7 @@
 import os
+import re
 import sqlite3
+from collections import Counter
 from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
@@ -46,23 +48,25 @@ def get_stats():
     """)
     money_stats = [dict(row) for row in cur.fetchall()]
 
-    # Топ комнат по каждому аромату
+    # Топ 3 слова из ответов про комнату
     cur.execute("""
-        SELECT aroma, room, COUNT(*) as count
-        FROM responses
+        SELECT aroma, room FROM responses
         WHERE room IS NOT NULL AND room != ''
-        GROUP BY aroma, room
-        ORDER BY aroma, count DESC
     """)
-    rooms_raw = cur.fetchall()
-
-    rooms = {}
-    for row in rooms_raw:
+    STOP_WORDS = {'в','на','и','с','по','для','из','что','как','не','это','бы'}
+    word_counts = {}
+    for row in cur.fetchall():
         aroma = row["aroma"]
-        if aroma not in rooms:
-            rooms[aroma] = []
-        if len(rooms[aroma]) < 3:
-            rooms[aroma].append({"room": row["room"], "count": row["count"]})
+        words = re.findall(r'[а-яёА-ЯЁa-zA-Z]{3,}', row["room"])
+        if aroma not in word_counts:
+            word_counts[aroma] = Counter()
+        for w in words:
+            wl = w.lower()
+            if wl not in STOP_WORDS:
+                word_counts[aroma][wl] += 1
+
+    rooms = {aroma: [w for w, _ in cnt.most_common(3)]
+             for aroma, cnt in word_counts.items()}
 
     # Общее количество пользователей
     cur.execute("SELECT COUNT(DISTINCT user_id) as users FROM responses")
