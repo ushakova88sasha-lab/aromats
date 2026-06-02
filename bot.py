@@ -157,10 +157,11 @@ async def rate_like(callback: CallbackQuery, state: FSMContext):
     aroma = data["aroma"]
     await state.update_data(like=score)
     await callback.message.edit_caption(caption=f"Аромат «{aroma}» понравился {score}/10")
-    await callback.message.answer(
+    bright_msg = await callback.message.answer(
         f"На сколько для тебя яркий аромат «{aroma}»? 🫦👇",
         reply_markup=rating_keyboard("bright")
     )
+    await state.update_data(bright_msg_id=bright_msg.message_id)
     await state.set_state(Survey.rate_bright)
     await callback.answer()
 
@@ -171,10 +172,11 @@ async def rate_bright(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     aroma = data["aroma"]
     await state.update_data(bright=score)
-    await callback.message.edit_text(f"Яркость «{aroma}»: {score}/10")
-    await callback.message.answer(
+    await callback.message.delete()
+    room_msg = await callback.message.answer(
         f"В какую комнату вы бы поставили аромат «{aroma}»?\nНапишите словами ниже 👇"
     )
+    await state.update_data(room_msg_id=room_msg.message_id)
     await state.set_state(Survey.room)
     await callback.answer()
 
@@ -190,6 +192,15 @@ async def room_answer(message: Message, state: FSMContext):
     bright = data["bright"]
     room = message.text
     photo_msg_id = data.get("photo_msg_id")
+    room_msg_id = data.get("room_msg_id")
+
+    # Удаляем вопрос про комнату и ответ пользователя
+    for msg_id in [room_msg_id, message.message_id]:
+        if msg_id:
+            try:
+                await bot.delete_message(chat_id=message.chat.id, message_id=msg_id)
+            except Exception:
+                pass
 
     await db.save_response(
         user_id=message.from_user.id,
